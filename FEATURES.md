@@ -2,11 +2,18 @@
 
 ## 🎆 Latest Major Updates
 
+### 🎫 **Volunteer Role Management System**
+- **Volunteer Access Control**: Three-tier access system (Admin > Volunteer > Regular User)
+- **Ticker Screen Access**: Only volunteers and admins can access ticker functionality
+- **Role-Based UI**: Different interfaces based on user permissions
+- **Admin-Managed Volunteers**: Only admins can add/remove volunteer access
+- **Secure Volunteer Panel**: Dedicated volunteer management in admin dashboard
+
 ### 🔐 **Advanced Admin Management System**
-- **Role-Based Access Control**: Only designated admins can manage areas
+- **Role-Based Access Control**: Only designated admins can manage areas and volunteers
 - **Email-Based Admin System**: Add administrators using their email addresses
 - **Admin Status Management**: Active/inactive admin status tracking
-- **Secure Admin Panel**: Two-tab interface for area and admin management
+- **Secure Admin Panel**: Three-tab interface for area, admin, and volunteer management
 - **Access Denied Protection**: Non-admin users cannot access admin functions
 
 ### 📊 **Per-Area Auditing System**
@@ -20,12 +27,13 @@
 
 ### ✅ Core Functionality
 - [x] **Google Authentication** - Secure Firebase Auth with Google OAuth
-- [x] **Home Dashboard** - Real-time overview of all event spaces
-- [x] **Area Management** - Full CRUD operations for event areas
-- [x] **Manual Counter** - Real-time entry/exit tracking with visual feedback
-- [x] **Admin Dashboard** - Comprehensive management interface
+- [x] **Home Dashboard** - Real-time overview of all event spaces with role-based access
+- [x] **Area Management** - Full CRUD operations for event areas (Admin only)
+- [x] **Ticker Screen** - Real-time entry/exit tracking with volunteer access control
+- [x] **Admin Dashboard** - Comprehensive management interface with three-tab system
+- [x] **Volunteer Management** - Email-based volunteer role assignment and management
 - [x] **Real-time Sync** - Live updates across all connected clients
-- [x] **Audit Logging** - Single document approach with arrayUnion
+- [x] **Audit Logging** - Per-area document approach with detailed tracking
 
 ### 🎨 User Interface
 - [x] **Material-UI Design** - Modern, minimalistic interface
@@ -52,14 +60,19 @@
 Login Screen → Google OAuth → Dashboard
 ```
 
-#### 2. Area Tracking Flow
+#### 2. Volunteer Ticker Flow
 ```
-Dashboard → Select Area → Manual Counter → Track Entry/Exit → Real-time Updates
+Dashboard → Select Area → Ticker Screen → Mark In/Out → Real-time Updates
 ```
 
-#### 3. Admin Management Flow
+#### 3. Area Tracking Flow
 ```
-Dashboard → Admin Panel → Add/Edit/Delete Areas → Real-time Propagation
+Dashboard → Select Area → Ticker Screen → Track Entry/Exit → Real-time Updates
+```
+
+#### 4. Admin Management Flow
+```
+Dashboard → Admin Panel → Add/Edit/Delete Areas → Manage Volunteers → Real-time Propagation
 ```
 
 ### 🔒 Security Features
@@ -67,6 +80,8 @@ Dashboard → Admin Panel → Add/Edit/Delete Areas → Real-time Propagation
 - **Secure OAuth**: Google-managed authentication tokens
 - **Environment Variables**: Secure configuration management
 - **Firestore Rules**: Database access control based on authentication
+- **Role-Based Access**: Admin/Volunteer/User permission levels
+- **Volunteer Access Control**: Ticker functionality restricted to authorized users
 
 ### 📊 Real-time Analytics
 - **Live Occupancy**: Current count across all areas
@@ -84,8 +99,9 @@ Dashboard → Admin Panel → Add/Edit/Delete Areas → Real-time Propagation
 
 ### 🏠 Dashboard Experience
 - **Quick Glance**: See all areas and their status at once
-- **One-Click Access**: Jump directly to any area counter
-- **Visual Feedback**: Color-coded indicators for capacity levels
+- **Role-Based Access**: Different interfaces for admins, volunteers, and regular users
+- **One-Click Access**: Jump directly to any area ticker (volunteers/admins only)
+- **Visual Feedback**: Color-coded indicators for capacity levels and access permissions
 - **Responsive Cards**: Beautiful hover effects and smooth transitions
 
 ### 📱 Mobile Experience
@@ -96,9 +112,17 @@ Dashboard → Admin Panel → Add/Edit/Delete Areas → Real-time Propagation
 
 ### 👨‍💼 Admin Experience
 - **Comprehensive Controls**: Full area lifecycle management
+- **Volunteer Management**: Add/remove volunteer access with email-based system
 - **Bulk Operations**: Enable/disable multiple areas
 - **Real-time Preview**: See changes immediately across all screens
 - **Confirmation Dialogs**: Safe deletion and modification workflows
+
+### 🎫 Volunteer Experience
+- **Ticker Access**: Dedicated ticker screen for marking entries/exits
+- **Simple Interface**: Clean, focused UI for attendance tracking
+- **Real-time Updates**: Immediate feedback on all actions
+- **Access Control**: Clear indicators of volunteer permissions
+- **Professional Tools**: Mark IN/OUT with detailed logging
 
 ## 🔧 Setup Requirements
 

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Area, AuthUser } from '../types';
-import { subscribeToAreas, checkUserIsAdmin } from '../services/firestore';
+import { subscribeToAreas, checkUserIsAdmin, checkUserIsVolunteer } from '../services/firestore';
 import { onAuthStateChange } from '../services/auth';
 
 interface AppContextType {
@@ -62,26 +62,41 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   useEffect(() => {
     // Listen to authentication state changes
     const unsubscribeAuth = onAuthStateChange(async (authUser) => {
-      console.log('🔍 Auth state changed:', authUser);
+      // console.log('🔍 Auth state changed:', authUser);
       
       if (authUser) {
-        console.log('👤 User authenticated:', authUser.email);
+        // console.log('👤 User authenticated:', authUser.email);
         
         // Check if user is admin
-        console.log('🔍 Checking admin status for:', authUser.email);
+        // console.log('🔍 Checking admin status for:', authUser.email);
         const isAdmin = await checkUserIsAdmin(authUser.uid);
-        console.log('🔐 Admin check result:', isAdmin);
+        // console.log('🔐 Admin check result:', isAdmin);
         
         // Also check by email (fallback)
         const isAdminByEmail = await checkUserIsAdmin(authUser.email || '');
-        console.log('🔐 Admin check by email result:', isAdminByEmail);
+        // console.log('🔐 Admin check by email result:', isAdminByEmail);
+        
+        // Check if user is volunteer
+        // console.log('🔍 Checking volunteer status for:', authUser.email);
+        const isVolunteer = await checkUserIsVolunteer(authUser.uid);
+        // console.log('🎆 Volunteer check result:', isVolunteer);
+        
+        // Also check by email (fallback)
+        const isVolunteerByEmail = await checkUserIsVolunteer(authUser.email || '');
+        // console.log('🎆 Volunteer check by email result:', isVolunteerByEmail);
         
         const finalAdminStatus = isAdmin || isAdminByEmail;
-        console.log('✅ Final admin status:', finalAdminStatus);
+        const finalVolunteerStatus = isVolunteer || isVolunteerByEmail;
+        // console.log('✅ Final admin status:', finalAdminStatus);
+        // console.log('✅ Final volunteer status:', finalVolunteerStatus);
         
-        setUser({ ...authUser, isAdmin: finalAdminStatus });
+        setUser({ 
+          ...authUser, 
+          isAdmin: finalAdminStatus,
+          isVolunteer: finalVolunteerStatus
+        });
       } else {
-        console.log('❌ User not authenticated');
+        // console.log('❌ User not authenticated');
         setUser(null);
       }
       setLoading(false);

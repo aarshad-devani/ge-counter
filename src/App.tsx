@@ -59,7 +59,7 @@ const theme = createTheme({
   },
 });
 
-type Route = 'login' | 'home' | 'manual-counter' | 'admin';
+type Route = 'login' | 'home' | 'manual-counter' | 'admin' | 'ticker';
 
 const AppContent: React.FC = () => {
   const [currentRoute, setCurrentRoute] = useState<Route>('home');
@@ -70,9 +70,9 @@ const AppContent: React.FC = () => {
     setCurrentRoute('home');
   };
 
-  const handleAreaSelected = (area: Area, mode: 'manual' | 'scan') => {
+  const handleAreaSelected = (area: Area, mode: 'manual' | 'scan' | 'ticker') => {
     setSelectedArea(area);
-    if (mode === 'manual') {
+    if (mode === 'manual' || mode === 'ticker') {
       setCurrentRoute('manual-counter');
     }
   };
@@ -93,6 +93,9 @@ const AppContent: React.FC = () => {
       case '/admin':
         setCurrentRoute('admin');
         break;
+      case '/ticker':
+        setCurrentRoute('ticker');
+        break;
       default:
         break;
     }
@@ -108,6 +111,8 @@ const AppContent: React.FC = () => {
         return `GE Counter - ${selectedArea?.name || 'Manual Counter'}`;
       case 'admin':
         return 'GE Counter - Admin Dashboard';
+      case 'ticker':
+        return `GE Counter - Ticker - ${selectedArea?.name || 'Area'}`;
       default:
         return 'GE Counter';
     }

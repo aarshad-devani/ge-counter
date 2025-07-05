@@ -30,6 +30,7 @@ export interface AuthUser {
   displayName: string | null;
   photoURL: string | null;
   isAdmin?: boolean;
+  isVolunteer?: boolean;
 }
 
 export interface AdminUser {
@@ -39,4 +40,17 @@ export interface AdminUser {
   addedAt: string;
   addedBy: string;
   status: 'active' | 'inactive';
+}
+
+export interface VolunteerUser {
+  uid: string;
+  email: string;
+  displayName?: string;
+  addedAt: string;
+  addedBy: string;
+  status: 'active' | 'inactive';
+  permissions: {
+    canAccessTicker: boolean;
+    assignedAreas?: string[]; // Optional: restrict to specific areas
+  };
 }

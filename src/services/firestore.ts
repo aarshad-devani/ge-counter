@@ -10,17 +10,18 @@ import {
   setDoc,
   getDoc,
   increment,
-  query,
-  where,
-  serverTimestamp,
+  // query,
+  // where,
+  // serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Area, LogEntry, AreaAudit, AdminUser } from '../types';
+import { Area, LogEntry, AreaAudit, AdminUser, VolunteerUser } from '../types';
 
 // Areas collection operations
 export const areasCollection = collection(db, 'areas');
 export const auditsCollection = collection(db, 'audits');
 export const adminsCollection = collection(db, 'admins');
+export const volunteersCollection = collection(db, 'volunteers');
 
 // Admin management
 export const checkUserIsAdmin = async (userIdOrEmail: string): Promise<boolean> => {
@@ -49,9 +50,35 @@ export const checkUserIsAdmin = async (userIdOrEmail: string): Promise<boolean> 
   }
 };
 
+// Volunteer management
+export const checkUserIsVolunteer = async (userIdOrEmail: string): Promise<boolean> => {
+  try {
+    console.log('🔍 checkUserIsVolunteer called with:', userIdOrEmail);
+    
+    const volunteerDoc = doc(db, 'volunteers', userIdOrEmail);
+    const volunteerSnapshot = await getDoc(volunteerDoc);
+    
+    console.log('🔍 Volunteer check exists:', volunteerSnapshot.exists());
+    
+    if (volunteerSnapshot.exists()) {
+      const volunteerData = volunteerSnapshot.data() as VolunteerUser;
+      console.log('🔍 Volunteer data found:', volunteerData);
+      const isActive = volunteerData.status === 'active' && volunteerData.permissions.canAccessTicker;
+      console.log('🔍 Volunteer status active and can access ticker:', isActive);
+      return isActive;
+    }
+    
+    console.log('🔍 No volunteer document found for:', userIdOrEmail);
+    return false;
+  } catch (error) {
+    console.error('❌ Error checking volunteer status:', error);
+    return false;
+  }
+};
+
 export const addAdmin = async (
   userEmail: string, 
-  addedByUserId: string, 
+  _addedByUserId: string, 
   addedByEmail: string
 ): Promise<void> => {
   // Note: In a real implementation, you'd need to get the user's UID from their email
@@ -81,11 +108,55 @@ export const removeAdmin = async (adminId: string): Promise<void> => {
   });
 };
 
+// Volunteer management functions
+export const addVolunteer = async (
+  userEmail: string,
+  _addedByUserId: string,
+  addedByEmail: string,
+  assignedAreas?: string[]
+): Promise<void> => {
+  const volunteerDoc = doc(db, 'volunteers', userEmail);
+  
+  await setDoc(volunteerDoc, {
+    email: userEmail,
+    addedAt: new Date().toISOString(),
+    addedBy: addedByEmail,
+    status: 'active',
+    permissions: {
+      canAccessTicker: true,
+      assignedAreas: assignedAreas || [], // Empty array means access to all areas
+    },
+  });
+};
+
+export const getVolunteers = async (): Promise<VolunteerUser[]> => {
+  const snapshot = await getDocs(volunteersCollection);
+  return snapshot.docs.map((doc) => ({
+    uid: doc.id,
+    ...doc.data(),
+  })) as VolunteerUser[];
+};
+
+export const removeVolunteer = async (volunteerId: string): Promise<void> => {
+  const volunteerDoc = doc(db, 'volunteers', volunteerId);
+  await updateDoc(volunteerDoc, {
+    status: 'inactive',
+  });
+};
+
+export const updateVolunteer = async (
+  volunteerId: string,
+  updates: Partial<VolunteerUser>
+): Promise<void> => {
+  const volunteerDoc = doc(db, 'volunteers', volunteerId);
+  await updateDoc(volunteerDoc, updates);
+};
+
 // Areas operations
 export const addArea = async (
   name: string, 
   maxCapacity: number, 
-  userId: string, 
+  _userId: string, 
   userEmail: string
 ): Promise<string> => {
   const areaData = {
@@ -190,20 +261,20 @@ export const addLogEntry = async (logEntry: LogEntry): Promise<void> => {
   const auditDoc = doc(db, 'audits', logEntry.areaId);
   
   // Ensure the audit document exists
-  const docSnapshot = await getDoc(auditDoc);
-  if (!docSnapshot.exists()) {
-    // Get area info to initialize audit document
-    const areaDoc = doc(db, 'areas', logEntry.areaId);
-    const areaSnapshot = await getDoc(areaDoc);
-    const areaData = areaSnapshot.data() as Area;
+  // const docSnapshot = await getDoc(auditDoc);
+  // if (!docSnapshot.exists()) {
+  //   // Get area info to initialize audit document
+  //   const areaDoc = doc(db, 'areas', logEntry.areaId);
+  //   const areaSnapshot = await getDoc(areaDoc);
+  //   const areaData = areaSnapshot.data() as Area;
     
-    await setDoc(auditDoc, {
-      areaId: logEntry.areaId,
-      areaName: areaData?.name || 'Unknown Area',
-      logEntries: [],
-      lastUpdated: new Date().toISOString(),
-    });
-  }
+  //   await setDoc(auditDoc, {
+  //     areaId: logEntry.areaId,
+  //     areaName: areaData?.name || 'Unknown Area',
+  //     logEntries: [],
+  //     lastUpdated: new Date().toISOString(),
+  //   });
+  // }
   
   // Add the log entry using arrayUnion
   await updateDoc(auditDoc, {

@@ -27,6 +27,9 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
   const [area, setArea] = useState<Area>(initialArea);
   const { user, showSnackbar } = useApp();
 
+  // Check if user has ticker access (admin or volunteer)
+  const canAccessTicker = user?.isAdmin || user?.isVolunteer;
+
   useEffect(() => {
     const unsubscribe = subscribeToArea(initialArea.id, (updatedArea) => {
       if (updatedArea) {
@@ -36,6 +39,45 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
 
     return () => unsubscribe();
   }, [initialArea.id]);
+
+  // Show access denied if user doesn't have ticker permissions
+  if (!canAccessTicker) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="80vh"
+      >
+        <Card sx={{ width: '100%', maxWidth: 600 }}>
+          <CardContent sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="h4" gutterBottom color="error">
+              Access Denied
+            </Typography>
+            <Typography variant="h6" gutterBottom>
+              Ticker Access Required
+            </Typography>
+            <Typography variant="body1" color="text.secondary" paragraph>
+              You need volunteer or admin privileges to access the ticker functionality.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Your email: <strong>{user?.email}</strong>
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Please contact an administrator to request volunteer access.
+            </Typography>
+            <Button
+              variant="outlined"
+              onClick={onChangeArea}
+              sx={{ mt: 2 }}
+            >
+              Back to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </Box>
+    );
+  }
 
   const handleEntry = async () => {
     if (!user) {
@@ -56,7 +98,7 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
       };
       
       await addLogEntry(logEntry);
-      showSnackbar('Entry Successful! Entry recorded.', 'success');
+      showSnackbar('Entry Marked! Person entry recorded successfully.', 'success');
     } catch (error) {
       console.error('Error recording entry:', error);
       showSnackbar('Error recording entry', 'error');
@@ -83,7 +125,7 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
         };
         
         await addLogEntry(logEntry);
-        showSnackbar('Exit Successful! Exit recorded.', 'success');
+        showSnackbar('Exit Marked! Person exit recorded successfully.', 'success');
       } else {
         showSnackbar('Cannot exit: current count is already 0', 'warning');
       }
@@ -105,12 +147,12 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
       <Card sx={{ width: '100%', maxWidth: 600 }}>
         <CardContent sx={{ p: 4 }}>
           <Typography variant="h4" align="center" gutterBottom>
-            Manual Counter
+            Ticker Screen
           </Typography>
           
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Area: {area.name} (ID: {area.id})
+              Area: {area.name}
             </Typography>
             
             <Box sx={{ mb: 2 }}>
@@ -139,7 +181,11 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
             {user && (
               <Box sx={{ mt: 2, p: 2, backgroundColor: 'grey.50', borderRadius: 1 }}>
                 <Typography variant="caption" color="text.secondary">
-                  Tracking as: {user.displayName || user.email}
+                  Volunteer: {user.displayName || user.email}
+                </Typography>
+                <br />
+                <Typography variant="caption" color="text.secondary">
+                  Role: {user.isAdmin ? 'Administrator' : 'Volunteer'}
                 </Typography>
               </Box>
             )}
@@ -153,7 +199,7 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
               sx={{ py: 2, fontSize: '1.2rem' }}
               color="success"
             >
-              Enter
+              Mark IN
             </Button>
             
             <Button
@@ -163,7 +209,7 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
               sx={{ py: 2, fontSize: '1.2rem' }}
               color="error"
             >
-              Exit
+              Mark OUT
             </Button>
             
             <Button
@@ -172,7 +218,7 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
               onClick={onChangeArea}
               sx={{ py: 1.5 }}
             >
-              Change Area
+              Back to Dashboard
             </Button>
           </Stack>
         </CardContent>

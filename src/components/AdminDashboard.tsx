@@ -37,9 +37,10 @@ import {
   ToggleOff,
   PersonAdd as PersonAddIcon,
   AdminPanelSettings as AdminIcon,
+  VolunteerActivism as VolunteerIcon,
 } from '@mui/icons-material';
 import { useApp } from '../contexts/AppContext';
-import { Area, AdminUser } from '../types';
+import { Area, AdminUser, VolunteerUser } from '../types';
 import {
   addArea,
   updateArea,
@@ -47,6 +48,9 @@ import {
   addAdmin,
   getAdmins,
   removeAdmin,
+  addVolunteer,
+  getVolunteers,
+  removeVolunteer,
 } from '../services/firestore';
 
 interface TabPanelProps {
@@ -82,12 +86,18 @@ const AdminDashboard: React.FC = () => {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loadingAdmins, setLoadingAdmins] = useState(false);
 
+  // Volunteer management states
+  const [newVolunteerEmail, setNewVolunteerEmail] = useState('');
+  const [volunteers, setVolunteers] = useState<VolunteerUser[]>([]);
+  const [loadingVolunteers, setLoadingVolunteers] = useState(false);
+
   // Check if current user is admin
   const isAdmin = user?.isAdmin || false;
 
   useEffect(() => {
     if (isAdmin) {
       loadAdmins();
+      loadVolunteers();
     }
   }, [isAdmin]);
 
@@ -100,6 +110,18 @@ const AdminDashboard: React.FC = () => {
       showSnackbar('Error loading admin list', 'error');
     } finally {
       setLoadingAdmins(false);
+    }
+  };
+
+  const loadVolunteers = async () => {
+    setLoadingVolunteers(true);
+    try {
+      const volunteerList = await getVolunteers();
+      setVolunteers(volunteerList);
+    } catch (error) {
+      showSnackbar('Error loading volunteer list', 'error');
+    } finally {
+      setLoadingVolunteers(false);
     }
   };
 
@@ -194,6 +216,39 @@ const AdminDashboard: React.FC = () => {
     } catch (error) {
       console.error('Error removing admin:', error);
       showSnackbar('Error removing admin', 'error');
+    }
+  };
+
+  const handleAddVolunteer = async () => {
+    if (!newVolunteerEmail.trim()) {
+      showSnackbar('Please enter an email address', 'warning');
+      return;
+    }
+
+    if (!user) {
+      showSnackbar('User not authenticated', 'error');
+      return;
+    }
+
+    try {
+      await addVolunteer(newVolunteerEmail.trim(), user.uid, user.email || '');
+      showSnackbar(`Volunteer Added: ${newVolunteerEmail} has been added as a volunteer.`, 'success');
+      setNewVolunteerEmail('');
+      loadVolunteers();
+    } catch (error) {
+      console.error('Error adding volunteer:', error);
+      showSnackbar('Error adding volunteer', 'error');
+    }
+  };
+
+  const handleRemoveVolunteer = async (volunteerId: string) => {
+    try {
+      await removeVolunteer(volunteerId);
+      showSnackbar('Volunteer removed successfully', 'success');
+      loadVolunteers();
+    } catch (error) {
+      console.error('Error removing volunteer:', error);
+      showSnackbar('Error removing volunteer', 'error');
     }
   };
 
@@ -292,6 +347,7 @@ const AdminDashboard: React.FC = () => {
         <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
           <Tab label="Area Management" />
           <Tab label="Admin Management" />
+          <Tab label="Volunteer Management" />
         </Tabs>
       </Card>
 
@@ -515,7 +571,7 @@ const AdminDashboard: React.FC = () => {
               They must sign in to the application using Google OAuth with the exact email address you specify.
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              <strong>Admin Privileges:</strong> Administrators can add/edit/delete areas, manage other administrators, 
+              <strong>Admin Privileges:</strong> Administrators can add/edit/delete areas, manage other administrators and volunteers, 
               and access this admin dashboard.
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
@@ -525,7 +581,134 @@ const AdminDashboard: React.FC = () => {
             <Alert severity="warning" sx={{ mt: 2 }}>
               <Typography variant="body2">
                 <strong>Important:</strong> Be careful when adding administrators. 
-                They will have full control over the system including the ability to add/remove other admins.
+                They will have full control over the system including the ability to add/remove other admins and volunteers.
+              </Typography>
+            </Alert>
+          </CardContent>
+        </Card>
+      </TabPanel>
+
+      {/* Volunteer Management Tab */}
+      <TabPanel value={tabValue} index={2}>
+        {/* Add New Volunteer Section */}
+        <Card sx={{ mb: 4 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Add New Volunteer
+            </Typography>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="body2">
+                Add users by their email address. Volunteers can access the Ticker Screen to mark entries and exits.
+              </Typography>
+            </Alert>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="end">
+              <TextField
+                label="Volunteer Email Address"
+                type="email"
+                value={newVolunteerEmail}
+                onChange={(e) => setNewVolunteerEmail(e.target.value)}
+                fullWidth
+                placeholder="volunteer@example.com"
+              />
+              <Button
+                variant="contained"
+                onClick={handleAddVolunteer}
+                startIcon={<PersonAddIcon />}
+                sx={{ minWidth: 140 }}
+              >
+                Add Volunteer
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
+
+        {/* Current Volunteers Section */}
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Current Volunteers
+            </Typography>
+            {loadingVolunteers ? (
+              <Typography>Loading volunteers...</Typography>
+            ) : (
+              <List>
+                {volunteers.map((volunteer) => (
+                  <ListItem key={volunteer.uid} divider>
+                    <ListItemText
+                      primary={volunteer.email}
+                      secondary={
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Chip
+                            label={volunteer.status}
+                            color={volunteer.status === 'active' ? 'success' : 'default'}
+                            size="small"
+                          />
+                          <Chip
+                            label={volunteer.permissions.canAccessTicker ? 'Ticker Access' : 'No Ticker Access'}
+                            color={volunteer.permissions.canAccessTicker ? 'info' : 'default'}
+                            size="small"
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            Added by: {volunteer.addedBy}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            • {new Date(volunteer.addedAt).toLocaleDateString()}
+                          </Typography>
+                        </Stack>
+                      }
+                    />
+                    <ListItemSecondaryAction>
+                      {volunteer.status === 'active' && volunteer.email !== user?.email && (
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() => handleRemoveVolunteer(volunteer.uid)}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                      {volunteer.email === user?.email && (
+                        <Chip label="You" size="small" color="primary" />
+                      )}
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                ))}
+                {volunteers.length === 0 && (
+                  <ListItem>
+                    <ListItemText
+                      primary="No volunteers found"
+                      secondary="Add volunteers using the form above"
+                    />
+                  </ListItem>
+                )}
+              </List>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Volunteer Instructions */}
+        <Card sx={{ mt: 4 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <VolunteerIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Volunteer Management Instructions
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              <strong>Adding Volunteers:</strong> Enter the email address of users you want to make volunteers. 
+              They must sign in to the application using Google OAuth with the exact email address you specify.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              <strong>Volunteer Privileges:</strong> Volunteers can access the Ticker Screen to mark entries and exits 
+              for event areas, but cannot access admin functions or manage other users.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              <strong>Access Levels:</strong> Admin - Volunteer - Regular User. Admins have full access, 
+              volunteers can use ticker functionality, regular users can only view.
+            </Typography>
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography variant="body2">
+                <strong>Note:</strong> Volunteers will see area cards as clickable and can access 
+                the manual counter to track attendance. Regular users will see a read-only view.
               </Typography>
             </Alert>
           </CardContent>
