@@ -15,6 +15,7 @@ import {
   Menu,
   MenuItem,
   Divider,
+  Button,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -82,6 +83,12 @@ const Layout: React.FC<LayoutProps> = ({ children, title, onNavigate }) => {
       onClick: () => handleNavigation('/admin'),
       disabled: false,
     }] : []),
+    {
+      text: 'Logout',
+      icon: <Logout />,
+      onClick: handleLogout,
+      disabled: false,
+    },
   ];
 
   return (
@@ -93,6 +100,20 @@ const Layout: React.FC<LayoutProps> = ({ children, title, onNavigate }) => {
           </Typography>
           {user && (
             <>
+              {/* Logout Button */}
+              <Button
+                color="inherit"
+                onClick={handleLogout}
+                startIcon={<Logout />}
+                sx={{ 
+                  mr: 2, 
+                  textTransform: 'none',
+                  display: { xs: 'none', sm: 'flex' } // Hide on mobile
+                }}
+              >
+                Logout
+              </Button>
+              
               <IconButton
                 color="inherit"
                 onClick={handleProfileMenuOpen}

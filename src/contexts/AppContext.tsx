@@ -62,11 +62,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   useEffect(() => {
     // Listen to authentication state changes
     const unsubscribeAuth = onAuthStateChange(async (authUser) => {
+      console.log('🔍 Auth state changed:', authUser);
+      
       if (authUser) {
+        console.log('👤 User authenticated:', authUser.email);
+        
         // Check if user is admin
+        console.log('🔍 Checking admin status for:', authUser.email);
         const isAdmin = await checkUserIsAdmin(authUser.uid);
-        setUser({ ...authUser, isAdmin });
+        console.log('🔐 Admin check result:', isAdmin);
+        
+        // Also check by email (fallback)
+        const isAdminByEmail = await checkUserIsAdmin(authUser.email || '');
+        console.log('🔐 Admin check by email result:', isAdminByEmail);
+        
+        const finalAdminStatus = isAdmin || isAdminByEmail;
+        console.log('✅ Final admin status:', finalAdminStatus);
+        
+        setUser({ ...authUser, isAdmin: finalAdminStatus });
       } else {
+        console.log('❌ User not authenticated');
         setUser(null);
       }
       setLoading(false);

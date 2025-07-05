@@ -19,6 +19,7 @@ import {
   People as PeopleIcon,
   LocationOn as LocationIcon,
   TrendingUp as TrendingUpIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { useApp } from '../contexts/AppContext';
 import { Area } from '../types';
@@ -51,13 +52,36 @@ const Home: React.FC<HomeProps> = ({ onAreaSelected, onNavigateToAdmin }) => {
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
       {/* Welcome Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Welcome back, {user?.displayName?.split(' ')[0] || 'User'}! 👋
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          Monitor and manage your event spaces in real-time
-        </Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Welcome back, {user?.displayName?.split(' ')[0] || 'User'}! 👋
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            Monitor and manage your event spaces in real-time
+          </Typography>
+        </Box>
+        
+        {/* Quick Logout Button */}
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<LogoutIcon />}
+          onClick={async () => {
+            try {
+              const { signOutUser } = await import('../services/auth');
+              await signOutUser();
+            } catch (error) {
+              console.error('Logout error:', error);
+            }
+          }}
+          sx={{ 
+            mt: { xs: 2, sm: 0 },
+            minWidth: 120,
+          }}
+        >
+          Sign Out
+        </Button>
       </Box>
 
       {/* Overview Stats */}

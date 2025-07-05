@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "add-admin": "node scripts/add-first-admin.js"
+    "add-admin": "node scripts/add-first-admin.js",
+    "debug-admin": "node scripts/debug-admin.js"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",

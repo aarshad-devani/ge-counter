@@ -23,19 +23,28 @@ export const auditsCollection = collection(db, 'audits');
 export const adminsCollection = collection(db, 'admins');
 
 // Admin management
-export const checkUserIsAdmin = async (userId: string): Promise<boolean> => {
+export const checkUserIsAdmin = async (userIdOrEmail: string): Promise<boolean> => {
   try {
-    const adminDoc = doc(db, 'admins', userId);
-    const adminSnapshot = await getDoc(adminDoc);
+    console.log('🔍 checkUserIsAdmin called with:', userIdOrEmail);
+    
+    // Try checking by the provided identifier (could be uid or email)
+    let adminDoc = doc(db, 'admins', userIdOrEmail);
+    let adminSnapshot = await getDoc(adminDoc);
+    
+    console.log('🔍 First check exists:', adminSnapshot.exists());
     
     if (adminSnapshot.exists()) {
       const adminData = adminSnapshot.data() as AdminUser;
-      return adminData.status === 'active';
+      console.log('🔍 Admin data found:', adminData);
+      const isActive = adminData.status === 'active';
+      console.log('🔍 Admin status active:', isActive);
+      return isActive;
     }
     
+    console.log('🔍 No admin document found for:', userIdOrEmail);
     return false;
   } catch (error) {
-    console.error('Error checking admin status:', error);
+    console.error('❌ Error checking admin status:', error);
     return false;
   }
 };
