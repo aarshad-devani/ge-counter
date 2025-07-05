@@ -38,6 +38,8 @@ config/serviceAccountKey.json
 # Firebase
 .firebase
 .firebaserc
+firebase.json
+firestore.indexes.json
 firebase-debug.log
 firebase-debug.*.log
 
