@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GE Counter - Add First Admin (Dev Tool)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input[type="email"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        input[type="email"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            color: #0d47a1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+        }
+        
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .config-section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .config-section h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        
+        .note {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛠️ GE Counter Admin Setup</h1>
+            <p>Development Tool - Add First Administrator</p>
+        </div>
+        
+        <div class="warning">
+            <strong>⚠️ Development Only!</strong><br>
+            This tool is for development setup only. Do not use in production environments.
+        </div>
+        
+        <div class="config-section">
+            <h3>📋 Prerequisites</h3>
+            <p>Before using this tool, make sure you have:</p>
+            <ul>
+                <li>Firebase project set up with Firestore enabled</li>
+                <li>Web app configured in Firebase console</li>
+                <li>Firebase configuration added to your <code>.env</code> file</li>
+            </ul>
+        </div>
+        
+        <form id="adminForm">
+            <div class="form-group">
+                <label for="email">Administrator Email Address:</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="admin@yourcompany.com"
+                    required
+                >
+                <div class="note">
+                    Enter the email address of the person who should have admin privileges.
+                    They must sign in using Google OAuth with this exact email.
+                </div>
+            </div>
+            
+            <button type="submit" id="submitBtn">
+                Add Administrator
+            </button>
+        </form>
+        
+        <div id="result" class="result"></div>
+        
+        <div class="instructions">
+            <h3>📖 How to Use This Tool</h3>
+            <ol>
+                <li><strong>Enter Email:</strong> Type the email address of the first administrator</li>
+                <li><strong>Click Add:</strong> The system will create an admin document in Firestore</li>
+                <li><strong>Sign In:</strong> The user must sign in to GE Counter using Google OAuth with that exact email</li>
+                <li><strong>Access Admin:</strong> They will automatically see admin features in the app</li>
+            </ol>
+            
+            <h3>🔧 What This Script Does</h3>
+            <p>This tool creates a document in the <code>admins</code> collection with the following structure:</p>
+            <pre style="background: #f1f3f4; padding: 10px; border-radius: 4px; font-size: 12px;">
+{
+  "email": "admin@yourcompany.com",
+  "addedAt": "2025-01-15T10:00:00.000Z",
+  "addedBy": "dev-tool",
+  "status": "active"
+}
+            </pre>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase configuration - you need to replace this with your config
+        const firebaseConfig = {
+            // Add your Firebase config here
+            // You can copy this from your .env file
+            apiKey: "your-api-key",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "your-app-id"
+        };
+
+        // Check if Firebase is configured
+        if (firebaseConfig.apiKey === "your-api-key") {
+            document.getElementById('result').innerHTML = `
+                <div class="error">
+                    <strong>⚠️ Firebase Not Configured!</strong><br>
+                    Please update the Firebase configuration in this HTML file with your actual project settings.
+                    You can find these values in your .env file.
+                </div>
+            `;
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('submitBtn').disabled = true;
+        }
+
+        // Initialize Firebase
+        let app, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            document.getElementById('result').innerHTML = `
+                <div class="error">
+                    <strong>❌ Firebase Error!</strong><br>
+                    Failed to initialize Firebase. Check your configuration and try again.
+                    <br><small>${error.message}</small>
+                </div>
+            `;
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('submitBtn').disabled = true;
+        }
+
+        // Form submission handler
+        document.getElementById('adminForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const submitBtn = document.getElementById('submitBtn');
+            const resultDiv = document.getElementById('result');
+            
+            if (!email) {
+                showResult('error', 'Please enter a valid email address.');
+                return;
+            }
+            
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Adding Administrator...';
+            resultDiv.style.display = 'none';
+            
+            try {
+                // Check if admin already exists
+                const adminDoc = doc(db, 'admins', email);
+                const adminSnapshot = await getDoc(adminDoc);
+                
+                if (adminSnapshot.exists()) {
+                    const adminData = adminSnapshot.data();
+                    const confirmUpdate = confirm(
+                        `Admin already exists!\n` +
+                        `Email: ${adminData.email}\n` +
+                        `Status: ${adminData.status}\n` +
+                        `Added by: ${adminData.addedBy}\n` +
+                        `Added at: ${new Date(adminData.addedAt).toLocaleString()}\n\n` +
+                        `Do you want to update this admin?`
+                    );
+                    
+                    if (!confirmUpdate) {
+                        showResult('error', 'Operation cancelled.');
+                        return;
+                    }
+                }
+                
+                // Create/update admin document
+                const adminData = {
+                    email: email,
+                    addedAt: new Date().toISOString(),
+                    addedBy: 'dev-tool',
+                    status: 'active'
+                };
+                
+                await setDoc(adminDoc, adminData);
+                
+                showResult('success', 
+                    `🎉 Administrator added successfully!<br><br>` +
+                    `<strong>Email:</strong> ${email}<br>` +
+                    `<strong>Next steps:</strong><br>` +
+                    `1. Sign in to GE Counter using Google OAuth<br>` +
+                    `2. Use the exact email: ${email}<br>` +
+                    `3. You will automatically have admin privileges<br>` +
+                    `4. Access Admin Dashboard from the hamburger menu`
+                );
+                
+                // Clear form
+                document.getElementById('email').value = '';
+                
+            } catch (error) {
+                console.error('Error adding administrator:', error);
+                showResult('error', 
+                    `❌ Error adding administrator:<br>` +
+                    `${error.message}<br><br>` +
+                    `Please check your Firebase configuration and try again.`
+                );
+            } finally {
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Add Administrator';
+            }
+        });
+        
+        function showResult(type, message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = message;
+            resultDiv.style.display = 'block';
+            
+            // Scroll to result
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    </script>
+</body>
+</html>
