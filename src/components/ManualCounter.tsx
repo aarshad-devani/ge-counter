@@ -8,7 +8,12 @@ import {
   Stack,
   LinearProgress,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
+import { RestartAlt as ResetIcon } from '@mui/icons-material';
 import { useApp } from '../contexts/AppContext';
 import { Area, LogEntry } from '../types';
 import {
@@ -16,6 +21,7 @@ import {
   incrementAreaCount,
   decrementAreaCount,
   addLogEntry,
+  updateArea,
 } from '../services/firestore';
 
 interface ManualCounterProps {
@@ -25,10 +31,13 @@ interface ManualCounterProps {
 
 const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea }) => {
   const [area, setArea] = useState<Area>(initialArea);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const { user, showSnackbar } = useApp();
 
   // Check if user has ticker access (admin or volunteer)
   const canAccessTicker = user?.isAdmin || user?.isVolunteer;
+  // Only admins can reset counters
+  const canResetCounter = user?.isAdmin;
 
   useEffect(() => {
     const unsubscribe = subscribeToArea(initialArea.id, (updatedArea) => {
@@ -135,6 +144,22 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
     }
   };
 
+  const handleResetCounter = async () => {
+    if (!user) {
+      showSnackbar('User not authenticated', 'error');
+      return;
+    }
+
+    try {
+      await updateArea(area.id, { currentCount: 0 });
+      showSnackbar('Counter Reset! Area count has been reset to 0.', 'success');
+      setResetDialogOpen(false);
+    } catch (error) {
+      console.error('Error resetting counter:', error);
+      showSnackbar('Error resetting counter', 'error');
+    }
+  };
+
   const percentage = Math.round((area.currentCount / area.maxCapacity) * 100);
 
   return (
@@ -212,6 +237,19 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
               Mark OUT
             </Button>
             
+            {canResetCounter && (
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={() => setResetDialogOpen(true)}
+                startIcon={<ResetIcon />}
+                sx={{ py: 1.5 }}
+                color="warning"
+              >
+                Reset Counter
+              </Button>
+            )}
+            
             <Button
               variant="outlined"
               size="large"
@@ -223,6 +261,25 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
           </Stack>
         </CardContent>
       </Card>
+      
+      {/* Reset Confirmation Dialog */}
+      <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>
+        <DialogTitle>Reset Counter</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to reset the counter for "{area.name}" to 0?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Current count: <strong>{area.currentCount}</strong>
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleResetCounter} color="warning" variant="contained">
+            Reset to 0
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

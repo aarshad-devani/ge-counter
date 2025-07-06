@@ -38,6 +38,7 @@ import {
   PersonAdd as PersonAddIcon,
   AdminPanelSettings as AdminIcon,
   VolunteerActivism as VolunteerIcon,
+  RestartAlt as ResetIcon,
 } from '@mui/icons-material';
 import { useApp } from '../contexts/AppContext';
 import { Area, AdminUser, VolunteerUser } from '../types';
@@ -314,6 +315,19 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleResetCounter = async (area: Area) => {
+    try {
+      await updateArea(area.id, { currentCount: 0 });
+      showSnackbar(
+        `Counter Reset: ${area.name} count has been reset to 0.`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Error resetting counter:', error);
+      showSnackbar('Error resetting counter', 'error');
+    }
+  };
+
   const handleDeleteArea = (area: Area) => {
     setSelectedArea(area);
     setDeleteDialogOpen(true);
@@ -439,13 +453,23 @@ const AdminDashboard: React.FC = () => {
                           onClick={() => handleEditArea(area)}
                           size="small"
                           color="primary"
+                          title="Edit area"
                         >
                           <EditIcon />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => handleResetCounter(area)}
+                          size="small"
+                          color="info"
+                          title="Reset counter to 0"
+                        >
+                          <ResetIcon />
                         </IconButton>
                         <IconButton
                           onClick={() => handleToggleStatus(area)}
                           size="small"
                           color={area.status === 'enabled' ? 'warning' : 'success'}
+                          title={area.status === 'enabled' ? 'Disable area' : 'Enable area'}
                         >
                           {area.status === 'enabled' ? <ToggleOff /> : <ToggleOn />}
                         </IconButton>
@@ -453,6 +477,7 @@ const AdminDashboard: React.FC = () => {
                           onClick={() => handleDeleteArea(area)}
                           size="small"
                           color="error"
+                          title="Delete area"
                         >
                           <DeleteIcon />
                         </IconButton>
