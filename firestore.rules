@@ -1,18 +1,39 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow authenticated users to read areas and audits
+    // Allow authenticated users to read areas
+    // Only admins can create/delete areas, but volunteers can update counters
     match /areas/{areaId} {
       allow read: if request.auth != null;
-      // Only admins can write to areas
-      allow write: if request.auth != null && 
+      // Admins can do everything
+      allow create, delete: if request.auth != null && 
         exists(/databases/$(database)/documents/admins/$(request.auth.token.email)) &&
         get(/databases/$(database)/documents/admins/$(request.auth.token.email)).data.status == 'active';
+      // Admins and volunteers can update (for counter changes)
+      allow update: if request.auth != null && (
+        // Admins can always update
+        (exists(/databases/$(database)/documents/admins/$(request.auth.token.email)) &&
+         get(/databases/$(database)/documents/admins/$(request.auth.token.email)).data.status == 'active') ||
+        // Volunteers can update if they have ticker access (for counter increments/decrements)
+        (exists(/databases/$(database)/documents/volunteers/$(request.auth.token.email)) &&
+         get(/databases/$(database)/documents/volunteers/$(request.auth.token.email)).data.status == 'active' &&
+         get(/databases/$(database)/documents/volunteers/$(request.auth.token.email)).data.permissions.canAccessTicker == true)
+      );
     }
     
     // Allow authenticated users to read and write audit logs
+    // Volunteers and admins can write, all authenticated users can read
     match /audits/{areaId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        // Admins can always write
+        (exists(/databases/$(database)/documents/admins/$(request.auth.token.email)) &&
+         get(/databases/$(database)/documents/admins/$(request.auth.token.email)).data.status == 'active') ||
+        // Volunteers can write if they have ticker access
+        (exists(/databases/$(database)/documents/volunteers/$(request.auth.token.email)) &&
+         get(/databases/$(database)/documents/volunteers/$(request.auth.token.email)).data.status == 'active' &&
+         get(/databases/$(database)/documents/volunteers/$(request.auth.token.email)).data.permissions.canAccessTicker == true)
+      );
     }
     
     // Only admins can read/write admin documents
@@ -25,14 +46,16 @@ service cloud.firestore {
         get(/databases/$(database)/documents/admins/$(request.auth.token.email)).data.status == 'active';
     }
     
-    // Only admins can read/write volunteer documents
+    // Volunteer documents - admins can read/write all, users can read their own
     match /volunteers/{volunteerId} {
+      // Admins can read/write all volunteer documents
+      allow read, write: if request.auth != null && 
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.token.email)).data.status == 'active';
+      
+      // Users can read their own volunteer document (by email or UID)
       allow read: if request.auth != null && 
-        exists(/databases/$(database)/documents/admins/$(request.auth.token.email)) &&
-        get(/databases/$(database)/documents/admins/$(request.auth.token.email)).data.status == 'active';
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/admins/$(request.auth.token.email)) &&
-        get(/databases/$(database)/documents/admins/$(request.auth.token.email)).data.status == 'active';
+        (volunteerId == request.auth.token.email || volunteerId == request.auth.uid);
     }
   }
 }

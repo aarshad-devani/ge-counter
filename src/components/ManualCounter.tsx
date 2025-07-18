@@ -217,25 +217,38 @@ const ManualCounter: React.FC<ManualCounterProps> = ({ initialArea, onChangeArea
           </Box>
 
           <Stack spacing={3}>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={handleEntry}
-              sx={{ py: 2, fontSize: '1.2rem' }}
-              color="success"
-            >
-              Mark IN
-            </Button>
-            
-            <Button
-              variant="contained"
-              size="large"
-              onClick={handleExit}
-              sx={{ py: 2, fontSize: '1.2rem' }}
-              color="error"
-            >
-              Mark OUT
-            </Button>
+            {/* IN/OUT Buttons - Horizontal Layout */}
+            <Box sx={{ display: 'flex', gap: 2, width: '100%', mt: 2 }}>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleEntry}
+                sx={{ 
+                  py: 2, 
+                  fontSize: '1.2rem',
+                  flex: 1,
+                  minHeight: '56px'
+                }}
+                color="success"
+              >
+                Mark IN
+              </Button>
+              
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleExit}
+                sx={{ 
+                  py: 2, 
+                  fontSize: '1.2rem',
+                  flex: 1,
+                  minHeight: '56px'
+                }}
+                color="error"
+              >
+                Mark OUT
+              </Button>
+            </Box>
             
             {canResetCounter && (
               <Button

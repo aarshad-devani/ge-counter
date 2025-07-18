@@ -39,6 +39,7 @@ import {
   AdminPanelSettings as AdminIcon,
   VolunteerActivism as VolunteerIcon,
   RestartAlt as ResetIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { useApp } from '../contexts/AppContext';
 import { Area, AdminUser, VolunteerUser } from '../types';
@@ -52,6 +53,7 @@ import {
   addVolunteer,
   getVolunteers,
   removeVolunteer,
+  getAreaLogEntries,
 } from '../services/firestore';
 
 interface TabPanelProps {
@@ -111,6 +113,117 @@ const AdminDashboard: React.FC = () => {
       showSnackbar('Error loading admin list', 'error');
     } finally {
       setLoadingAdmins(false);
+    }
+  };
+
+  const handleDownloadAllCSV = async () => {
+    try {
+      showSnackbar('Generating comprehensive CSV report...', 'info');
+      
+      // Get audit logs for all areas
+      const allLogEntries = [];
+      let totalEntries = 0;
+      
+      for (const area of areas) {
+        const logEntries = await getAreaLogEntries(area.id);
+        totalEntries += logEntries.length;
+        // Add area info to each log entry
+        const areaLogEntries = logEntries.map(entry => ({
+          ...entry,
+          areaName: area.name,
+          areaCapacity: area.maxCapacity,
+          areaStatus: area.status,
+          areaCurrentCount: area.currentCount
+        }));
+        allLogEntries.push(...areaLogEntries);
+      }
+      
+      // Sort by timestamp
+      allLogEntries.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      
+      // Create CSV content with metadata
+      const csvHeader = `GE Counter - Comprehensive Audit Report\nGenerated: ${new Date().toLocaleString()}\nTotal Areas: ${areas.length}\nTotal Entries: ${totalEntries}\n\nTimestamp,Area Name,Action,User Email,User Name,Area Capacity,Area Status,Current Count\n`;
+      
+      const csvRows = allLogEntries.map(entry => {
+        const timestamp = new Date(entry.timestamp).toLocaleString();
+        const action = entry.type === 'IN' ? 'Entry' : 'Exit';
+        const userEmail = entry.userEmail || 'Unknown';
+        const userName = entry.userDisplayName || 'Unknown';
+        const areaName = entry.areaName;
+        const areaCapacity = entry.areaCapacity;
+        const areaStatus = entry.areaStatus;
+        const currentCount = entry.areaCurrentCount;
+        
+        return `"${timestamp}","${areaName}","${action}","${userEmail}","${userName}","${areaCapacity}","${areaStatus}","${currentCount}"`;
+      }).join('\n');
+      
+      const csvContent = csvHeader + csvRows;
+      
+      // Create and download the file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `GE_Counter_All_Areas_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showSnackbar(
+        `Comprehensive CSV Downloaded: All areas audit report (${totalEntries} total entries) has been downloaded.`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Error generating comprehensive CSV:', error);
+      showSnackbar('Error generating comprehensive CSV report', 'error');
+    }
+  };
+
+  const handleDownloadCSV = async (area: Area) => {
+    try {
+      showSnackbar('Generating CSV report...', 'info');
+      
+      // Get audit logs for this area
+      const logEntries = await getAreaLogEntries(area.id);
+      
+      // Create CSV content with metadata
+      const csvHeader = `Area: ${area.name}\nCapacity: ${area.maxCapacity}\nCurrent Count: ${area.currentCount}\nStatus: ${area.status}\nReport Generated: ${new Date().toLocaleString()}\n\nTimestamp,Action,User Email,User Name,Entry Number\n`;
+      
+      const csvRows = logEntries.map((entry, index) => {
+        const timestamp = new Date(entry.timestamp).toLocaleString();
+        const action = entry.type === 'IN' ? 'Entry' : 'Exit';
+        const userEmail = entry.userEmail || 'Unknown';
+        const userName = entry.userDisplayName || 'Unknown';
+        const entryNumber = index + 1;
+        
+        return `"${timestamp}","${action}","${userEmail}","${userName}","${entryNumber}"`;
+      }).join('\n');
+      
+      const csvContent = csvHeader + csvRows;
+      
+      // Create and download the file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${area.name.replace(/[^a-zA-Z0-9]/g, '_')}_audit_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showSnackbar(
+        `CSV Downloaded: ${area.name} audit report (${logEntries.length} entries) has been downloaded.`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Error generating CSV:', error);
+      showSnackbar('Error generating CSV report', 'error');
     }
   };
 
@@ -401,9 +514,20 @@ const AdminDashboard: React.FC = () => {
         {/* Current Areas Section */}
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Current Area Capacities & Management
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">
+                Current Area Capacities & Management
+              </Typography>
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={handleDownloadAllCSV}
+                color="success"
+                disabled={areas.length === 0}
+              >
+                Download All Areas CSV
+              </Button>
+            </Box>
             <TableContainer component={Paper} elevation={0}>
               <Table>
                 <TableHead>
@@ -456,6 +580,14 @@ const AdminDashboard: React.FC = () => {
                           title="Edit area"
                         >
                           <EditIcon />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => handleDownloadCSV(area)}
+                          size="small"
+                          color="success"
+                          title="Download audit CSV"
+                        >
+                          <DownloadIcon />
                         </IconButton>
                         <IconButton
                           onClick={() => handleResetCounter(area)}

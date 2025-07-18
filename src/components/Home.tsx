@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Grid,
@@ -12,16 +12,20 @@ import {
   Fab,
   useTheme,
   useMediaQuery,
+  // Badge,
+  // Divider,
 } from "@mui/material";
 import {
   Add as AddIcon,
   People as PeopleIcon,
   LocationOn as LocationIcon,
   TrendingUp as TrendingUpIcon,
+  Login as LoginIcon,
   // Logout as LogoutIcon,
 } from "@mui/icons-material";
 import { useApp } from "../contexts/AppContext";
-import { Area } from "../types";
+import { Area, LogEntry } from "../types";
+import { subscribeToAreaLogEntries } from "../services/firestore";
 
 interface HomeProps {
   onAreaSelected: (area: Area, mode: "manual" | "scan" | "ticker") => void;
@@ -32,6 +36,7 @@ const Home: React.FC<HomeProps> = ({ onAreaSelected, onNavigateToAdmin }) => {
   const { areas, user } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [areaLogEntries, setAreaLogEntries] = useState<Record<string, LogEntry[]>>({});
 
   const enabledAreas = areas.filter((area) => area.status === "enabled");
   const totalCapacity = enabledAreas.reduce(
@@ -45,9 +50,33 @@ const Home: React.FC<HomeProps> = ({ onAreaSelected, onNavigateToAdmin }) => {
   const averageOccupancy =
     enabledAreas.length > 0 ? (totalOccupancy / totalCapacity) * 100 : 0;
 
+  // Subscribe to log entries for all enabled areas
+  useEffect(() => {
+    const unsubscribes: (() => void)[] = [];
+
+    enabledAreas.forEach((area) => {
+      const unsubscribe = subscribeToAreaLogEntries(area.id, (entries) => {
+        setAreaLogEntries((prev) => ({
+          ...prev,
+          [area.id]: entries,
+        }));
+      });
+      unsubscribes.push(unsubscribe);
+    });
+
+    return () => {
+      unsubscribes.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [enabledAreas.map(area => area.id).join(',')]);
+
   // Check user permissions
   const canAccessTicker = user?.isAdmin || user?.isVolunteer;
   const isReadOnlyUser = !user?.isAdmin && !user?.isVolunteer;
+  
+  // Debug logging
+  console.log('🏠 Home component - User:', user);
+  console.log('🏠 Home component - Can access ticker:', canAccessTicker);
+  console.log('🏠 Home component - Is read only:', isReadOnlyUser);
 
   const getOccupancyColor = (percentage: number) => {
     if (percentage > 80) return "error";
@@ -57,6 +86,11 @@ const Home: React.FC<HomeProps> = ({ onAreaSelected, onNavigateToAdmin }) => {
 
   const getOccupancyPercentage = (current: number, max: number) => {
     return Math.round((current / max) * 100);
+  };
+
+  const getTotalEntriesForArea = (areaId: string) => {
+    const entries = areaLogEntries[areaId] || [];
+    return entries.filter(entry => entry.type === 'IN').length;
   };
 
   return (
@@ -240,7 +274,7 @@ const Home: React.FC<HomeProps> = ({ onAreaSelected, onNavigateToAdmin }) => {
                     of {area.maxCapacity} capacity
                   </Typography>
 
-                  <Box sx={{ mt: 2 }}>
+                  <Box sx={{ mt: 2, mb: 2 }}>
                     <LinearProgress
                       variant="determinate"
                       value={percentage}
@@ -251,6 +285,80 @@ const Home: React.FC<HomeProps> = ({ onAreaSelected, onNavigateToAdmin }) => {
                         backgroundColor: `${theme.palette[occupancyColor].main}20`,
                       }}
                     />
+                  </Box>
+
+                  {/* Total Entries Section */}
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      p: 1.5,
+                      backgroundColor: 'rgba(46, 125, 50, 0.08)',
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: 'rgba(46, 125, 50, 0.2)',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        backgroundColor: 'rgba(46, 125, 50, 0.12)',
+                        borderColor: 'rgba(46, 125, 50, 0.3)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 32,
+                          height: 32,
+                          backgroundColor: 'rgba(46, 125, 50, 0.15)',
+                          borderRadius: '50%',
+                        }}
+                      >
+                        <LoginIcon 
+                          sx={{ 
+                            color: 'success.main', 
+                            fontSize: '1.1rem'
+                          }} 
+                        />
+                      </Box>
+                      <Box>
+                        <Typography 
+                          variant="body2" 
+                          color="success.main" 
+                          fontWeight="600"
+                          sx={{ lineHeight: 1.2 }}
+                        >
+                          Total Entries
+                        </Typography>
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary"
+                          sx={{ lineHeight: 1 }}
+                        >
+                          All time
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: 40,
+                        height: 32,
+                        backgroundColor: 'success.main',
+                        borderRadius: 2,
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: '0.875rem',
+                        boxShadow: '0 2px 4px rgba(46, 125, 50, 0.2)',
+                      }}
+                    >
+                      {getTotalEntriesForArea(area.id)}
+                    </Box>
                   </Box>
                 </CardContent>
 
