@@ -3,18 +3,16 @@ export interface Area {
   name: string;
   maxCapacity: number;
   currentCount: number;
-  status: 'enabled' | 'disabled';
+  status: "enabled" | "disabled";
   createdAt: string;
   createdBy: string;
 }
 
 export interface LogEntry {
-  type: 'IN' | 'OUT';
+  type: "IN" | "OUT";
   areaId: string;
   timestamp: string;
   userId: string;
-  userEmail: string;
-  userDisplayName?: string;
 }
 
 export interface AreaAudit {
@@ -39,7 +37,7 @@ export interface AdminUser {
   displayName?: string;
   addedAt: string;
   addedBy: string;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
 }
 
 export interface VolunteerUser {
@@ -48,7 +46,7 @@ export interface VolunteerUser {
   displayName?: string;
   addedAt: string;
   addedBy: string;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   permissions: {
     canAccessTicker: boolean;
     assignedAreas?: string[]; // Optional: restrict to specific areas

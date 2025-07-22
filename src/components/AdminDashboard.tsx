@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Card,
@@ -29,7 +29,7 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -40,9 +40,10 @@ import {
   VolunteerActivism as VolunteerIcon,
   RestartAlt as ResetIcon,
   Download as DownloadIcon,
-} from '@mui/icons-material';
-import { useApp } from '../contexts/AppContext';
-import { Area, AdminUser, VolunteerUser } from '../types';
+} from "@mui/icons-material";
+import ClearAllIcon from "@mui/icons-material/ClearAll";
+import { useApp } from "../contexts/AppContext";
+import { Area, AdminUser, VolunteerUser } from "../types";
 import {
   addArea,
   updateArea,
@@ -54,7 +55,8 @@ import {
   getVolunteers,
   removeVolunteer,
   getAreaLogEntries,
-} from '../services/firestore';
+  clearLogEntries,
+} from "../services/firestore";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -73,24 +75,24 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
 const AdminDashboard: React.FC = () => {
   const { areas, user, showSnackbar } = useApp();
   const [tabValue, setTabValue] = useState(0);
-  const [newAreaName, setNewAreaName] = useState('');
-  const [newAreaCapacity, setNewAreaCapacity] = useState('');
+  const [newAreaName, setNewAreaName] = useState("");
+  const [newAreaCapacity, setNewAreaCapacity] = useState("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedArea, setSelectedArea] = useState<Area | null>(null);
   const [editForm, setEditForm] = useState({
-    name: '',
-    maxCapacity: '',
-    status: 'enabled' as 'enabled' | 'disabled',
+    name: "",
+    maxCapacity: "",
+    status: "enabled" as "enabled" | "disabled",
   });
 
   // Admin management states
-  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState("");
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loadingAdmins, setLoadingAdmins] = useState(false);
 
   // Volunteer management states
-  const [newVolunteerEmail, setNewVolunteerEmail] = useState('');
+  const [newVolunteerEmail, setNewVolunteerEmail] = useState("");
   const [volunteers, setVolunteers] = useState<VolunteerUser[]>([]);
   const [loadingVolunteers, setLoadingVolunteers] = useState(false);
 
@@ -110,7 +112,7 @@ const AdminDashboard: React.FC = () => {
       const adminList = await getAdmins();
       setAdmins(adminList);
     } catch (error) {
-      showSnackbar('Error loading admin list', 'error');
+      showSnackbar("Error loading admin list", "error");
     } finally {
       setLoadingAdmins(false);
     }
@@ -118,112 +120,133 @@ const AdminDashboard: React.FC = () => {
 
   const handleDownloadAllCSV = async () => {
     try {
-      showSnackbar('Generating comprehensive CSV report...', 'info');
-      
+      showSnackbar("Generating comprehensive CSV report...", "info");
+
       // Get audit logs for all areas
       const allLogEntries = [];
       let totalEntries = 0;
-      
+
       for (const area of areas) {
         const logEntries = await getAreaLogEntries(area.id);
         totalEntries += logEntries.length;
         // Add area info to each log entry
-        const areaLogEntries = logEntries.map(entry => ({
+        const areaLogEntries = logEntries.map((entry) => ({
           ...entry,
           areaName: area.name,
           areaCapacity: area.maxCapacity,
           areaStatus: area.status,
-          areaCurrentCount: area.currentCount
+          areaCurrentCount: area.currentCount,
         }));
         allLogEntries.push(...areaLogEntries);
       }
-      
+
       // Sort by timestamp
-      allLogEntries.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-      
+      allLogEntries.sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
       // Create CSV content with metadata
-      const csvHeader = `GE Counter - Comprehensive Audit Report\nGenerated: ${new Date().toLocaleString()}\nTotal Areas: ${areas.length}\nTotal Entries: ${totalEntries}\n\nTimestamp,Area Name,Action,User Email,User Name,Area Capacity,Area Status,Current Count\n`;
-      
-      const csvRows = allLogEntries.map(entry => {
-        const timestamp = new Date(entry.timestamp).toLocaleString();
-        const action = entry.type === 'IN' ? 'Entry' : 'Exit';
-        const userEmail = entry.userEmail || 'Unknown';
-        const userName = entry.userDisplayName || 'Unknown';
-        const areaName = entry.areaName;
-        const areaCapacity = entry.areaCapacity;
-        const areaStatus = entry.areaStatus;
-        const currentCount = entry.areaCurrentCount;
-        
-        return `"${timestamp}","${areaName}","${action}","${userEmail}","${userName}","${areaCapacity}","${areaStatus}","${currentCount}"`;
-      }).join('\n');
-      
+      const csvHeader = `GE Counter - Comprehensive Audit Report\nGenerated: ${new Date().toLocaleString()}\nTotal Areas: ${
+        areas.length
+      }\nTotal Entries: ${totalEntries}\n\nTimestamp,Area Name,Action,User Email,User Name,Area Capacity,Area Status,Current Count\n`;
+
+      const csvRows = allLogEntries
+        .map((entry) => {
+          const timestamp = new Date(entry.timestamp).toLocaleString();
+          const action = entry.type === "IN" ? "Entry" : "Exit";
+          // const userEmail = entry.userEmail || 'Unknown';
+          // const userName = entry.userDisplayName || 'Unknown';
+          const areaName = entry.areaName;
+          const areaCapacity = entry.areaCapacity;
+          const areaStatus = entry.areaStatus;
+          const currentCount = entry.areaCurrentCount;
+
+          return `"${timestamp}","${areaName}","${action}","${areaCapacity}","${areaStatus}","${currentCount}"`;
+        })
+        .join("\n");
+
       const csvContent = csvHeader + csvRows;
-      
+
       // Create and download the file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      
-      link.setAttribute('href', url);
-      link.setAttribute('download', `GE_Counter_All_Areas_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      
+
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `GE_Counter_All_Areas_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      link.style.visibility = "hidden";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       showSnackbar(
         `Comprehensive CSV Downloaded: All areas audit report (${totalEntries} total entries) has been downloaded.`,
-        'success'
+        "success"
       );
     } catch (error) {
-      console.error('Error generating comprehensive CSV:', error);
-      showSnackbar('Error generating comprehensive CSV report', 'error');
+      console.error("Error generating comprehensive CSV:", error);
+      showSnackbar("Error generating comprehensive CSV report", "error");
     }
   };
 
   const handleDownloadCSV = async (area: Area) => {
     try {
-      showSnackbar('Generating CSV report...', 'info');
-      
+      showSnackbar("Generating CSV report...", "info");
+
       // Get audit logs for this area
       const logEntries = await getAreaLogEntries(area.id);
-      
+
       // Create CSV content with metadata
-      const csvHeader = `Area: ${area.name}\nCapacity: ${area.maxCapacity}\nCurrent Count: ${area.currentCount}\nStatus: ${area.status}\nReport Generated: ${new Date().toLocaleString()}\n\nTimestamp,Action,User Email,User Name,Entry Number\n`;
-      
-      const csvRows = logEntries.map((entry, index) => {
-        const timestamp = new Date(entry.timestamp).toLocaleString();
-        const action = entry.type === 'IN' ? 'Entry' : 'Exit';
-        const userEmail = entry.userEmail || 'Unknown';
-        const userName = entry.userDisplayName || 'Unknown';
-        const entryNumber = index + 1;
-        
-        return `"${timestamp}","${action}","${userEmail}","${userName}","${entryNumber}"`;
-      }).join('\n');
-      
+      const csvHeader = `Area: ${area.name}\nCapacity: ${
+        area.maxCapacity
+      }\nCurrent Count: ${area.currentCount}\nStatus: ${
+        area.status
+      }\nReport Generated: ${new Date().toLocaleString()}\n\nTimestamp,Action,User Email,User Name,Entry Number\n`;
+
+      const csvRows = logEntries
+        .map((entry, index) => {
+          const timestamp = new Date(entry.timestamp).toLocaleString();
+          const action = entry.type === "IN" ? "Entry" : "Exit";
+          // const userEmail = entry.userEmail || 'Unknown';
+          // const userName = entry.userDisplayName || 'Unknown';
+          const entryNumber = index + 1;
+
+          return `"${timestamp}","${action}","${entryNumber}"`;
+        })
+        .join("\n");
+
       const csvContent = csvHeader + csvRows;
-      
+
       // Create and download the file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      
-      link.setAttribute('href', url);
-      link.setAttribute('download', `${area.name.replace(/[^a-zA-Z0-9]/g, '_')}_audit_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      
+
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `${area.name.replace(/[^a-zA-Z0-9]/g, "_")}_audit_${
+          new Date().toISOString().split("T")[0]
+        }.csv`
+      );
+      link.style.visibility = "hidden";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       showSnackbar(
         `CSV Downloaded: ${area.name} audit report (${logEntries.length} entries) has been downloaded.`,
-        'success'
+        "success"
       );
     } catch (error) {
-      console.error('Error generating CSV:', error);
-      showSnackbar('Error generating CSV report', 'error');
+      console.error("Error generating CSV:", error);
+      showSnackbar("Error generating CSV report", "error");
     }
   };
 
@@ -233,7 +256,7 @@ const AdminDashboard: React.FC = () => {
       const volunteerList = await getVolunteers();
       setVolunteers(volunteerList);
     } catch (error) {
-      showSnackbar('Error loading volunteer list', 'error');
+      showSnackbar("Error loading volunteer list", "error");
     } finally {
       setLoadingVolunteers(false);
     }
@@ -242,23 +265,25 @@ const AdminDashboard: React.FC = () => {
   // Show access denied if user is not admin
   if (!isAdmin) {
     return (
-      <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4 }}>
+      <Box sx={{ maxWidth: 600, mx: "auto", mt: 4 }}>
         <Alert severity="error" sx={{ mb: 2 }}>
           <Typography variant="h6" gutterBottom>
             Access Denied
           </Typography>
           <Typography>
-            You don't have administrator privileges. Please contact an administrator to get access.
+            You don't have administrator privileges. Please contact an
+            administrator to get access.
           </Typography>
         </Alert>
-        
+
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
               How to become an admin?
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              To gain administrator access, an existing admin needs to add your email address to the admin list.
+              To gain administrator access, an existing admin needs to add your
+              email address to the admin list.
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               Your email: <strong>{user?.email}</strong>
@@ -274,95 +299,104 @@ const AdminDashboard: React.FC = () => {
 
   const handleAddArea = async () => {
     if (!newAreaName.trim() || !newAreaCapacity.trim()) {
-      showSnackbar('Please fill in both area name and capacity', 'warning');
+      showSnackbar("Please fill in both area name and capacity", "warning");
       return;
     }
 
     const capacity = parseInt(newAreaCapacity);
     if (isNaN(capacity) || capacity <= 0) {
-      showSnackbar('Please enter a valid capacity number', 'error');
+      showSnackbar("Please enter a valid capacity number", "error");
       return;
     }
 
     if (!user) {
-      showSnackbar('User not authenticated', 'error');
+      showSnackbar("User not authenticated", "error");
       return;
     }
 
     try {
-      await addArea(newAreaName.trim(), capacity, user.uid, user.email || '');
-      showSnackbar(`Area Added: ${newAreaName} has been successfully added.`, 'success');
-      setNewAreaName('');
-      setNewAreaCapacity('');
+      await addArea(newAreaName.trim(), capacity, user.uid, user.email || "");
+      showSnackbar(
+        `Area Added: ${newAreaName} has been successfully added.`,
+        "success"
+      );
+      setNewAreaName("");
+      setNewAreaCapacity("");
     } catch (error) {
-      console.error('Error adding area:', error);
-      showSnackbar('Error adding area', 'error');
+      console.error("Error adding area:", error);
+      showSnackbar("Error adding area", "error");
     }
   };
 
   const handleAddAdmin = async () => {
     if (!newAdminEmail.trim()) {
-      showSnackbar('Please enter an email address', 'warning');
+      showSnackbar("Please enter an email address", "warning");
       return;
     }
 
     if (!user) {
-      showSnackbar('User not authenticated', 'error');
+      showSnackbar("User not authenticated", "error");
       return;
     }
 
     try {
-      await addAdmin(newAdminEmail.trim(), user.uid, user.email || '');
-      showSnackbar(`Admin Added: ${newAdminEmail} has been added as an administrator.`, 'success');
-      setNewAdminEmail('');
+      await addAdmin(newAdminEmail.trim(), user.uid, user.email || "");
+      showSnackbar(
+        `Admin Added: ${newAdminEmail} has been added as an administrator.`,
+        "success"
+      );
+      setNewAdminEmail("");
       loadAdmins();
     } catch (error) {
-      console.error('Error adding admin:', error);
-      showSnackbar('Error adding admin', 'error');
+      console.error("Error adding admin:", error);
+      showSnackbar("Error adding admin", "error");
     }
   };
 
   const handleRemoveAdmin = async (adminId: string) => {
     try {
       await removeAdmin(adminId);
-      showSnackbar('Admin removed successfully', 'success');
+      showSnackbar("Admin removed successfully", "success");
       loadAdmins();
     } catch (error) {
-      console.error('Error removing admin:', error);
-      showSnackbar('Error removing admin', 'error');
+      console.error("Error removing admin:", error);
+      showSnackbar("Error removing admin", "error");
     }
   };
 
   const handleAddVolunteer = async () => {
     if (!newVolunteerEmail.trim()) {
-      showSnackbar('Please enter an email address', 'warning');
+      showSnackbar("Please enter an email address", "warning");
       return;
     }
 
     if (!user) {
-      showSnackbar('User not authenticated', 'error');
+      showSnackbar("User not authenticated", "error");
       return;
     }
 
     try {
-      await addVolunteer(newVolunteerEmail.trim(), user.uid, user.email || '');
-      showSnackbar(`Volunteer Added: ${newVolunteerEmail} has been added as a volunteer.`, 'success');
-      setNewVolunteerEmail('');
+      await addVolunteer(newVolunteerEmail.trim(), user.uid, user.email || "");
+      showSnackbar(
+        `Volunteer Added: ${newVolunteerEmail} has been added as a volunteer.`,
+        "success"
+      );
+      setNewVolunteerEmail("");
       loadVolunteers();
     } catch (error) {
-      console.error('Error adding volunteer:', error);
-      showSnackbar('Error adding volunteer', 'error');
+      console.error("Error adding volunteer:", error);
+      showSnackbar("Error adding volunteer", "error");
     }
   };
 
   const handleRemoveVolunteer = async (volunteerId: string) => {
     try {
       await removeVolunteer(volunteerId);
-      showSnackbar('Volunteer removed successfully', 'success');
+      showSnackbar("Volunteer removed successfully", "success");
       loadVolunteers();
     } catch (error) {
-      console.error('Error removing volunteer:', error);
-      showSnackbar('Error removing volunteer', 'error');
+      console.error("Error removing volunteer:", error);
+      showSnackbar("Error removing volunteer", "error");
     }
   };
 
@@ -381,7 +415,7 @@ const AdminDashboard: React.FC = () => {
 
     const capacity = parseInt(editForm.maxCapacity);
     if (isNaN(capacity) || capacity <= 0) {
-      showSnackbar('Please enter a valid capacity number', 'error');
+      showSnackbar("Please enter a valid capacity number", "error");
       return;
     }
 
@@ -393,51 +427,62 @@ const AdminDashboard: React.FC = () => {
       };
 
       // Reset count to 0 when enabling a disabled area
-      if (selectedArea.status === 'disabled' && editForm.status === 'enabled') {
+      if (selectedArea.status === "disabled" && editForm.status === "enabled") {
         updates.currentCount = 0;
       }
 
       await updateArea(selectedArea.id, updates);
-      showSnackbar('Area Updated', 'success');
+      showSnackbar("Area Updated", "success");
       setEditDialogOpen(false);
       setSelectedArea(null);
     } catch (error) {
-      console.error('Error updating area:', error);
-      showSnackbar('Error updating area', 'error');
+      console.error("Error updating area:", error);
+      showSnackbar("Error updating area", "error");
     }
   };
 
   const handleToggleStatus = async (area: Area) => {
     try {
-      const newStatus = area.status === 'enabled' ? 'disabled' : 'enabled';
+      const newStatus = area.status === "enabled" ? "disabled" : "enabled";
       const updates: Partial<Area> = { status: newStatus };
 
       // Reset count to 0 when enabling a disabled area
-      if (area.status === 'disabled' && newStatus === 'enabled') {
+      if (area.status === "disabled" && newStatus === "enabled") {
         updates.currentCount = 0;
       }
 
       await updateArea(area.id, updates);
       showSnackbar(
         `Area Status Changed: ${area.name} is now ${newStatus}.`,
-        'success'
+        "success"
       );
     } catch (error) {
-      console.error('Error updating area status:', error);
-      showSnackbar('Error updating area status', 'error');
+      console.error("Error updating area status:", error);
+      showSnackbar("Error updating area status", "error");
+    }
+  };
+
+  const handleClearLogs = async (area: Area) => {
+    try {
+      await clearLogEntries(area.id);
+      showSnackbar("Log Entries Cleared", "success");
+    } catch (error) {
+      console.error("Error updating area status:", error);
+      showSnackbar("Error updating area status", "error");
     }
   };
 
   const handleResetCounter = async (area: Area) => {
     try {
       await updateArea(area.id, { currentCount: 0 });
+      await clearLogEntries(area.id); // Clear log entries for this area
       showSnackbar(
         `Counter Reset: ${area.name} count has been reset to 0.`,
-        'success'
+        "success"
       );
     } catch (error) {
-      console.error('Error resetting counter:', error);
-      showSnackbar('Error resetting counter', 'error');
+      console.error("Error resetting counter:", error);
+      showSnackbar("Error resetting counter", "error");
     }
   };
 
@@ -451,12 +496,12 @@ const AdminDashboard: React.FC = () => {
 
     try {
       await deleteArea(selectedArea.id);
-      showSnackbar(`Area ${selectedArea.name} has been deleted.`, 'success');
+      showSnackbar(`Area ${selectedArea.name} has been deleted.`, "success");
       setDeleteDialogOpen(false);
       setSelectedArea(null);
     } catch (error) {
-      console.error('Error deleting area:', error);
-      showSnackbar('Error deleting area', 'error');
+      console.error("Error deleting area:", error);
+      showSnackbar("Error deleting area", "error");
     }
   };
 
@@ -465,13 +510,16 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1200, mx: "auto" }}>
       <Typography variant="h4" gutterBottom>
         Admin Dashboard
       </Typography>
 
       <Card sx={{ mb: 2 }}>
-        <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
+        <Tabs
+          value={tabValue}
+          onChange={(_, newValue) => setTabValue(newValue)}
+        >
           <Tab label="Area Management" />
           <Tab label="Admin Management" />
           <Tab label="Volunteer Management" />
@@ -486,7 +534,11 @@ const AdminDashboard: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Add New Area
             </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="end">
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              alignItems="end"
+            >
               <TextField
                 label="Area Name"
                 value={newAreaName}
@@ -514,7 +566,14 @@ const AdminDashboard: React.FC = () => {
         {/* Current Areas Section */}
         <Card>
           <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
               <Typography variant="h6">
                 Current Area Capacities & Management
               </Typography>
@@ -549,13 +608,20 @@ const AdminDashboard: React.FC = () => {
                       </TableCell>
                       <TableCell align="center">
                         <Chip
-                          label={`${getPercentage(area.currentCount, area.maxCapacity)}%`}
+                          label={`${getPercentage(
+                            area.currentCount,
+                            area.maxCapacity
+                          )}%`}
                           color={
-                            getPercentage(area.currentCount, area.maxCapacity) > 80
-                              ? 'error'
-                              : getPercentage(area.currentCount, area.maxCapacity) > 60
-                              ? 'warning'
-                              : 'success'
+                            getPercentage(area.currentCount, area.maxCapacity) >
+                            80
+                              ? "error"
+                              : getPercentage(
+                                  area.currentCount,
+                                  area.maxCapacity
+                                ) > 60
+                              ? "warning"
+                              : "success"
                           }
                           size="small"
                         />
@@ -563,13 +629,15 @@ const AdminDashboard: React.FC = () => {
                       <TableCell align="center">
                         <Chip
                           label={area.status}
-                          color={area.status === 'enabled' ? 'success' : 'default'}
+                          color={
+                            area.status === "enabled" ? "success" : "default"
+                          }
                           size="small"
                         />
                       </TableCell>
                       <TableCell align="center">
                         <Typography variant="caption" color="text.secondary">
-                          {area.createdBy || 'Unknown'}
+                          {area.createdBy || "Unknown"}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
@@ -598,12 +666,30 @@ const AdminDashboard: React.FC = () => {
                           <ResetIcon />
                         </IconButton>
                         <IconButton
+                          onClick={() => handleClearLogs(area)}
+                          size="small"
+                          color="secondary"
+                          title="Clear Logs"
+                        >
+                          <ClearAllIcon />
+                        </IconButton>
+                        <IconButton
                           onClick={() => handleToggleStatus(area)}
                           size="small"
-                          color={area.status === 'enabled' ? 'warning' : 'success'}
-                          title={area.status === 'enabled' ? 'Disable area' : 'Enable area'}
+                          color={
+                            area.status === "enabled" ? "warning" : "success"
+                          }
+                          title={
+                            area.status === "enabled"
+                              ? "Disable area"
+                              : "Enable area"
+                          }
                         >
-                          {area.status === 'enabled' ? <ToggleOff /> : <ToggleOn />}
+                          {area.status === "enabled" ? (
+                            <ToggleOff />
+                          ) : (
+                            <ToggleOn />
+                          )}
                         </IconButton>
                         <IconButton
                           onClick={() => handleDeleteArea(area)}
@@ -633,10 +719,15 @@ const AdminDashboard: React.FC = () => {
             </Typography>
             <Alert severity="info" sx={{ mb: 2 }}>
               <Typography variant="body2">
-                Add users by their email address. They must sign in with Google using this email to gain admin access.
+                Add users by their email address. They must sign in with Google
+                using this email to gain admin access.
               </Typography>
             </Alert>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="end">
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              alignItems="end"
+            >
               <TextField
                 label="Admin Email Address"
                 type="email"
@@ -675,7 +766,9 @@ const AdminDashboard: React.FC = () => {
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Chip
                             label={admin.status}
-                            color={admin.status === 'active' ? 'success' : 'default'}
+                            color={
+                              admin.status === "active" ? "success" : "default"
+                            }
                             size="small"
                           />
                           <Typography variant="caption" color="text.secondary">
@@ -688,15 +781,16 @@ const AdminDashboard: React.FC = () => {
                       }
                     />
                     <ListItemSecondaryAction>
-                      {admin.status === 'active' && admin.email !== user?.email && (
-                        <Button
-                          size="small"
-                          color="error"
-                          onClick={() => handleRemoveAdmin(admin.uid)}
-                        >
-                          Remove
-                        </Button>
-                      )}
+                      {admin.status === "active" &&
+                        admin.email !== user?.email && (
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => handleRemoveAdmin(admin.uid)}
+                          >
+                            Remove
+                          </Button>
+                        )}
                       {admin.email === user?.email && (
                         <Chip label="You" size="small" color="primary" />
                       )}
@@ -720,25 +814,30 @@ const AdminDashboard: React.FC = () => {
         <Card sx={{ mt: 4 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              <AdminIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+              <AdminIcon sx={{ mr: 1, verticalAlign: "middle" }} />
               Administrator Instructions
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              <strong>Adding Admins:</strong> Enter the email address of users you want to make administrators. 
-              They must sign in to the application using Google OAuth with the exact email address you specify.
+              <strong>Adding Admins:</strong> Enter the email address of users
+              you want to make administrators. They must sign in to the
+              application using Google OAuth with the exact email address you
+              specify.
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              <strong>Admin Privileges:</strong> Administrators can add/edit/delete areas, manage other administrators and volunteers, 
+              <strong>Admin Privileges:</strong> Administrators can
+              add/edit/delete areas, manage other administrators and volunteers,
               and access this admin dashboard.
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              <strong>Security:</strong> Only active administrators can access this panel. 
-              Users without admin privileges will see an access denied message.
+              <strong>Security:</strong> Only active administrators can access
+              this panel. Users without admin privileges will see an access
+              denied message.
             </Typography>
             <Alert severity="warning" sx={{ mt: 2 }}>
               <Typography variant="body2">
-                <strong>Important:</strong> Be careful when adding administrators. 
-                They will have full control over the system including the ability to add/remove other admins and volunteers.
+                <strong>Important:</strong> Be careful when adding
+                administrators. They will have full control over the system
+                including the ability to add/remove other admins and volunteers.
               </Typography>
             </Alert>
           </CardContent>
@@ -755,10 +854,15 @@ const AdminDashboard: React.FC = () => {
             </Typography>
             <Alert severity="info" sx={{ mb: 2 }}>
               <Typography variant="body2">
-                Add users by their email address. Volunteers can access the Ticker Screen to mark entries and exits.
+                Add users by their email address. Volunteers can access the
+                Ticker Screen to mark entries and exits.
               </Typography>
             </Alert>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="end">
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              alignItems="end"
+            >
               <TextField
                 label="Volunteer Email Address"
                 type="email"
@@ -797,12 +901,24 @@ const AdminDashboard: React.FC = () => {
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Chip
                             label={volunteer.status}
-                            color={volunteer.status === 'active' ? 'success' : 'default'}
+                            color={
+                              volunteer.status === "active"
+                                ? "success"
+                                : "default"
+                            }
                             size="small"
                           />
                           <Chip
-                            label={volunteer.permissions.canAccessTicker ? 'Ticker Access' : 'No Ticker Access'}
-                            color={volunteer.permissions.canAccessTicker ? 'info' : 'default'}
+                            label={
+                              volunteer.permissions.canAccessTicker
+                                ? "Ticker Access"
+                                : "No Ticker Access"
+                            }
+                            color={
+                              volunteer.permissions.canAccessTicker
+                                ? "info"
+                                : "default"
+                            }
                             size="small"
                           />
                           <Typography variant="caption" color="text.secondary">
@@ -815,15 +931,16 @@ const AdminDashboard: React.FC = () => {
                       }
                     />
                     <ListItemSecondaryAction>
-                      {volunteer.status === 'active' && volunteer.email !== user?.email && (
-                        <Button
-                          size="small"
-                          color="error"
-                          onClick={() => handleRemoveVolunteer(volunteer.uid)}
-                        >
-                          Remove
-                        </Button>
-                      )}
+                      {volunteer.status === "active" &&
+                        volunteer.email !== user?.email && (
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => handleRemoveVolunteer(volunteer.uid)}
+                          >
+                            Remove
+                          </Button>
+                        )}
                       {volunteer.email === user?.email && (
                         <Chip label="You" size="small" color="primary" />
                       )}
@@ -847,25 +964,30 @@ const AdminDashboard: React.FC = () => {
         <Card sx={{ mt: 4 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              <VolunteerIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+              <VolunteerIcon sx={{ mr: 1, verticalAlign: "middle" }} />
               Volunteer Management Instructions
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              <strong>Adding Volunteers:</strong> Enter the email address of users you want to make volunteers. 
-              They must sign in to the application using Google OAuth with the exact email address you specify.
+              <strong>Adding Volunteers:</strong> Enter the email address of
+              users you want to make volunteers. They must sign in to the
+              application using Google OAuth with the exact email address you
+              specify.
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              <strong>Volunteer Privileges:</strong> Volunteers can access the Ticker Screen to mark entries and exits 
-              for event areas, but cannot access admin functions or manage other users.
+              <strong>Volunteer Privileges:</strong> Volunteers can access the
+              Ticker Screen to mark entries and exits for event areas, but
+              cannot access admin functions or manage other users.
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              <strong>Access Levels:</strong> Admin - Volunteer - Regular User. Admins have full access, 
-              volunteers can use ticker functionality, regular users can only view.
+              <strong>Access Levels:</strong> Admin - Volunteer - Regular User.
+              Admins have full access, volunteers can use ticker functionality,
+              regular users can only view.
             </Typography>
             <Alert severity="info" sx={{ mt: 2 }}>
               <Typography variant="body2">
-                <strong>Note:</strong> Volunteers will see area cards as clickable and can access 
-                the manual counter to track attendance. Regular users will see a read-only view.
+                <strong>Note:</strong> Volunteers will see area cards as
+                clickable and can access the manual counter to track attendance.
+                Regular users will see a read-only view.
               </Typography>
             </Alert>
           </CardContent>
@@ -873,31 +995,40 @@ const AdminDashboard: React.FC = () => {
       </TabPanel>
 
       {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Edit Area</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               label="Area Name"
               value={editForm.name}
-              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, name: e.target.value })
+              }
               fullWidth
             />
             <TextField
               label="Capacity Limit"
               type="number"
               value={editForm.maxCapacity}
-              onChange={(e) => setEditForm({ ...editForm, maxCapacity: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, maxCapacity: e.target.value })
+              }
               fullWidth
             />
             <FormControlLabel
               control={
                 <Switch
-                  checked={editForm.status === 'enabled'}
+                  checked={editForm.status === "enabled"}
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
-                      status: e.target.checked ? 'enabled' : 'disabled',
+                      status: e.target.checked ? "enabled" : "disabled",
                     })
                   }
                 />
@@ -915,12 +1046,16 @@ const AdminDashboard: React.FC = () => {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete the area "{selectedArea?.name}"? 
-            This action cannot be undone and will also delete all associated audit logs.
+            Are you sure you want to delete the area "{selectedArea?.name}"?
+            This action cannot be undone and will also delete all associated
+            audit logs.
           </Typography>
         </DialogContent>
         <DialogActions>

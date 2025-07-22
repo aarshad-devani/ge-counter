@@ -280,6 +280,14 @@ export const decrementAreaCount = async (areaId: string): Promise<void> => {
   });
 };
 
+export const clearLogEntries = async (areaId: string): Promise<void> => {
+  const auditDoc = doc(db, "audits", areaId);
+  await updateDoc(auditDoc, {
+    logEntries: [], // Clear log entries
+    lastUpdated: new Date().toISOString(),
+  });
+};
+
 // Audit operations - Per area documents
 export const addLogEntry = async (logEntry: LogEntry): Promise<void> => {
   const auditDoc = doc(db, "audits", logEntry.areaId);
